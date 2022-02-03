@@ -1,0 +1,148 @@
+---
+title: External conditions can have a direct impact on the number of people using
+  the shelter
+author: "Xiaoyuan Xing"
+date: "02/02/2021"
+abstract: "The spike in homelessness has become a major social issue in Canada, and
+  the government and the country have had to pay attention to the problem. This report
+  examines how external factors affect the number of homeless people and is based
+  on a dataset of information shared by the Shelter Management Information System
+  on the number of homeless people entering and leaving the shelter system each month.
+  By first cleaning the data and applying statistical methods to distill the valid
+  information in the data set, it is possible to understand the relationship between
+  the number of homeless people and external environmental factors. For example, the
+  spread of epidemics has led to a decrease in the number of people in shelters, and
+  extreme cold weather has led to a spike in the number of people in shelters. This
+  report will help the Canadian government to reduce the number of homeless people
+  to some extent."
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+bibliography: ref_list.bib
+---
+
+
+1. Introduction
+
+  The number of homeless people in Canada has been rising gradually since 1997 and is not trending downward. Historically, the cities of Montreal, Vancouver, Edmonton, Calgary and Toronto are the only cities with the highest concentrations of homelessness. In recent years, homelessness has become a major social issue in Canada.
+
+  There are a variety of factors that can push people into homelessness, including loss of employment, depression, drug addiction, domestic violence or extreme poverty, all of which are extreme causes of homelessness and loss of family. In addition, changes in the economy and the housing market (high housing prices and high interest rates on loans) have become important factors in homelessness that may not seem related to homelessness, but are in fact one of the main causes.
+
+2. Data
+
+ To better understand the specific numbers and fluctuations in homelessness in recent years, as well as the share of different types of homelessness (gender, age, and shelter use) in the Shelter Management Information System (SMIS), I used the Toronto Open Data portal[@kkk] of The Shelter System Flow data[@ggg].The Toronto Open Data website provides this dataset, which contains data and related profiles that are freely available to viewers. Shelter system flow data is collected and published by Support & Housing Administration and was last updated in December 2021 on a monthly basis (the 15th of each month or the next business day). The Shelter System Flow data[@ggg] provides data on the number of homeless people entering and leaving the shelter system each month, as well as the number of people who have used the shelter system at least once in the recent past. These data provide information about who is experiencing homelessness and their specific circumstances. This dataset will help reduce the number of people experiencing homelessness in Toronto and better improve the Shelter Management Information System.
+ 
+  We have to admit that there is still some bias in this dataset. Shelters that do not use the Shelter Management Information System and are funded by other levels of government are also not included in this dataset, which means that some homeless data cannot be collected. The open dataset will be released on the 15th of each month (or the next business day)[@ggg], and when a new dataset is released, it will include the updated dataset from the previous month, which means that the previous month's data will be replaced when the new data extraction is complete.
+
+  The analysis for this project was performed using the R programming language (R Code Team), where data manipulation tasks were performed by the packages tidyverse[@ijn] and dplyr[@ttt], such as mutate and summarize. Using the package of opendatatorontop[@kkk] import selected data in R markdown. 
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
+
+```{r include=FALSE }
+
+library(opendatatoronto)
+library(dplyr)
+library(tidyverse)
+
+# get package
+package <- show_package("ac77f532-f18b-427c-905c-4ae87ce69c93")
+package
+
+# get all resources for this package
+resources <- list_package_resources("ac77f532-f18b-427c-905c-4ae87ce69c93")
+
+# identify datastore resources; by default, Toronto Open Data sets datastore resource format to CSV for non-geospatial and GeoJSON for geospatial resources
+datastore_resources <- filter(resources, tolower(format) %in% c('csv', 'geojson'))
+
+# load the first datastore resource as a sample
+data <- filter(datastore_resources, row_number()==1) %>% get_resource()
+data
+```
+
+
+  Firstly, I cleaned the data. The main focus of this report is to examine the relationship between the total number of people using the shelter at the time and other variables, so I used the equation filter(population_group == "All Population") to remove the breakdown status of homeless people, such as “Families”, “Youth”, and “Single Adult”.  Secondly, remove all variables that will not have an impact on the research question using the equation select(-), such as “population_group” and “population_group_percentage”. Because their data will be the same after the first step is done, which means that these data will not play any role in the paper. Finally, I used the mutate command to create a new variable (using_shelter_now) that represents the number of people who were using the shelter at that time. Here is the data that I cleaned up.
+
+
+```{r include=FALSE}
+data |>
+  filter(population_group == "All Population") |>
+  select(-population_group) |>
+  select(-population_group_percentage) |>
+  mutate(using_shelter_now = returned_to_shelter + newly_identified) |>
+  select(-returned_to_shelter) |>
+  select(-newly_identified) |>
+  select(-"gender_transgender,non-binary_or_two_spirit")
+
+```
+
+```{r  include=FALSE }
+library(opendatatoronto)
+library(dplyr)
+library(tidyverse)
+data %>%
+  filter(population_group == "All Population")  %>%
+  select(-population_group)  %>%
+  select(-population_group_percentage)  %>%
+  mutate(using_shelter_now = returned_to_shelter + newly_identified) -> newdata
+
+str(newdata)
+```
+
+  To better examine the trends in homelessness over the two years (2020-2021), this can be shown by plotting a graph using ggplot (Wickham, 2016). x-axis shows the variable for 24 months (two years), and y-axis represents the total number of people using the shelter each month.
+
+
+
+```{r  include=FALSE }
+data1 = data  %>%
+  filter(population_group == "All Population")  %>%
+  select(-population_group)  %>%
+  select(-population_group_percentage)  %>%
+  mutate(using_shelter_now = returned_to_shelter + newly_identified)  %>%
+  mutate(newdata, id = rownames(newdata)) 
+```
+
+```{r  echo = FALSE,fig.cap="Achart showing the use of the shelter over the last two years."}
+data1 %>%
+  ggplot(mapping = aes(x = reorder(id,using_shelter_now), y = using_shelter_now)) + geom_bar(stat = "identity") + labs(title = "Quarterly change in the use of shelter in 24 months(2020-2021)", x = "Months in ordinal numbers", y = "The number of people using the shelter")
+
+```
+
+  Figure1 shows the fluctuations in the number of people using the shelter over the past two years. June 2020 was the month with the least number of people using the shelter in two years, with just under 800 people. However, in February 2020, the number of people using the sheltered peaked at nearly 1,500, which is twice as many as the number of people using the shelter in June. The number of people using the shelter in 2021 is significantly higher than the previous year, as shown by the distribution of numbers in the chart. 
+  The trend of the Canadian epidemic from March-July 2020. As the graph shows, May-June reaches the peak of the number of people infected by Covid-19 in Canada in 2020. Shelters for the homeless are often provided in congregate (group) settings, which can lead to increased transmission of infection. Many of the homeless are elderly or have underlying medical conditions, so they are at greater risk for serious illness due to COVID-19 infection[@nnn]. This means that more and more people are suffering from the virus, which is why fewer and fewer homeless people are using the shelter, and they are more worried about being infected than being homeless. As a result, the use of the shelter has reached its lowest level in the past two years.
+
+  In order to study the use of shelters by older homeless people at different times, I drew point charts. the horizontal coordinates of this chart are in the form of numbers for 24 months (2020-2021) and the vertical coordinates are the number of older people over the age of 25. I think what this chart can reflect is the logical change of homeless elderly people over time.
+
+
+
+```{r   echo = FALSE,fig.cap="A map of the number of elderly homeless people"}
+data  %>%
+  filter(population_group == "All Population")  %>%
+  select(-population_group)  %>%
+  select(-population_group_percentage)  %>%
+  mutate(using_shelter_now = returned_to_shelter + newly_identified)  %>%
+  mutate(newdata, id = rownames(newdata))  %>%
+  ggplot(aes(x = id, y = age65over)) + geom_point(stat = "identity") + labs(title = "Change in the number of homeless seniors age 65+ using shelters in the last 24 months", x = "Months in ordinal numbers", y = "Number of 65-year-olds using the shelter")
+```
+  In the above graph, it is clear that the number of elderly people using the shelters peaked in December 2021 (the 24th month) at almost 650. The reason for this cannot be ignored is the extreme weather, as some frail homeless elderly people had to use the shelters to escape the cold due to the extreme cold. Because humans are exposed to cold for a long time, the body will experience a series of negative stress reactions. However, in June 2020, temperatures in Canada will return to their warmest time of the year, while the number of seniors using shelters drops to a yearly low. Because some seniors find the air quality and temperature outside to be better than in a shelter during the summer, they do not choose to stay in a shelter. It is clear that the weather also affects the number of people in the shelters to some extent. A variety of external factors can cause homeless people to make different choices. What we cannot deny is that these choices are logical.
+
+3. Conclusion
+
+  From the above analysis, it is clear that a number of external factors can influence the use of shelters by homeless people, such as the impact of epidemics and weather. In times of severe epidemics, homeless people would rather live on the streets than spend the night in a shelter to avoid the risk of infection. Secondly, in extremely cold weather, the number of people in shelters can also skyrocket. Because the extreme weather makes it impossible for homeless people to stay out overnight, they have to choose to stay in shelters. Many cities in Canada have assistance systems for the homeless, but policies vary from shelter to shelter.
+
+
+
+
+
+
+
+
+
+
+
+# Reference
+
+
