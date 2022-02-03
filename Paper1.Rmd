@@ -22,6 +22,8 @@ output:
 bibliography: ref_list.bib
 ---
 
+Here is some body text.^[This footnote will appear at the bottom of the page.: https://github.com/NATHAN0472/9090.git]
+
 
 1. Introduction
 
